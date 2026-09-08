@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trama — halftone, gravura, stipple e mosaico vetorial</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --surface:#1c1c1e;
+    --surface-2:#242427;
+    --surface-3:#2d2d31;
+    --line:#3a3a3f;
+    --text:#ece9e2;
+    --text-dim:#98958d;
+    --paper:#f4f1ea;
+    --ink:#111110;
+    --cyan:#00b1d6;
+    --cyan-dim:#0a4a58;
+    --magenta:#e2467f;
+    --focus:#00b1d6;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --surface:#efece4;
+      --surface-2:#e6e2d8;
+      --surface-3:#dcd7ca;
+      --line:#c9c3b3;
+      --text:#1c1a15;
+      --text-dim:#6b6658;
+      --paper:#ffffff;
+      --ink:#111110;
+      --cyan:#00838f;
+      --cyan-dim:#bfe9ec;
+      --magenta:#b5215f;
+    }
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--surface);color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;}
+
+  .app{display:grid;grid-template-columns:340px 1fr;min-height:100vh;}
+  @media (max-width:880px){ .app{grid-template-columns:1fr;} }
+
+  /* ---------- Header brand ---------- */
+  .brand{display:flex;align-items:center;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--line);}
+  .regmark{width:26px;height:26px;flex:none;}
+  .brand h1{font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-size:26px;letter-spacing:0.5px;margin:0;line-height:1;}
+  .brand p{margin:2px 0 0;font-size:11px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;letter-spacing:0.03em;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--surface);}
+  .controls{padding:18px 22px 90px;overflow-y:auto;flex:1;}
+
+  .drop{border:1.5px dashed var(--line);border-radius:4px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s;position:relative;}
+  .drop:hover, .drop.drag{border-color:var(--cyan);background:var(--surface-2);}
+  .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .drop .dlabel{font-size:12px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+  .drop .dlabel b{color:var(--text);display:block;font-family:'IBM Plex Sans',sans-serif;font-size:13px;margin-bottom:3px;font-weight:600;}
+
+  .section{margin-top:22px;}
+  .section-title{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin:0 0 10px;display:flex;align-items:center;gap:8px;}
+  .section-title::after{content:"";flex:1;height:1px;background:var(--line);}
+
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;}
+  .seg.seg3{grid-template-columns:repeat(3,1fr);}
+  .seg button{background:var(--surface-2);color:var(--text-dim);border:none;padding:9px 6px;font-size:11.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.02em;cursor:pointer;transition:background .12s,color .12s;}
+  .seg button.active{background:var(--cyan);color:#04191c;font-weight:600;}
+  .seg button:hover:not(.active){background:var(--surface-3);color:var(--text);}
+
+  .field{margin-top:14px;}
+  .field-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+  .field label{font-size:12px;color:var(--text);}
+  .field .val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan);}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--line);border-radius:2px;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--cyan);cursor:pointer;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--cyan);}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--cyan);cursor:pointer;border:2px solid var(--surface);}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .check{display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;user-select:none;}
+  .check input{width:14px;height:14px;accent-color:var(--cyan);}
+  .check span{font-size:12.5px;color:var(--text);}
+
+  .colorfield{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+  .colorfield label{font-size:12.5px;color:var(--text);}
+  .colorfield .swatch-wrap{display:flex;align-items:center;gap:8px;}
+  .colorfield input[type=color]{width:26px;height:26px;border:1px solid var(--line);border-radius:4px;padding:0;background:none;cursor:pointer;}
+  .colorfield code{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-dim);}
+
+  .subhide{display:none;}
+  .subhide.show{display:block;}
+  .hidden{display:none !important;}
+
+  .drop.small{padding:10px;}
+
+  .tex-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .tex-thumb{width:38px;height:38px;border:1px solid var(--line);border-radius:4px;background:var(--surface-2);padding:6px;cursor:pointer;color:var(--text-dim);position:relative;flex:none;}
+  .tex-thumb.active{border-color:var(--cyan);color:var(--cyan);background:var(--surface-3);}
+  .tex-thumb:hover:not(.active){border-color:var(--text-dim);}
+  .tex-thumb svg{width:100%;height:100%;display:block;}
+  .tex-thumb .rm{position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:50%;background:var(--magenta);color:#fff;font-size:10px;line-height:14px;text-align:center;display:none;}
+  .tex-thumb:hover .rm{display:block;}
+  .tex-note{font-size:10.5px;color:var(--text-dim);margin:8px 0 0;}
+  #shapeField.dimmed{opacity:.4;pointer-events:none;}
+
+  /* ---------- Export bar ---------- */
+  .exportbar{position:sticky;bottom:0;padding:14px 22px;border-top:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:8px;}
+  .btn{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.02em;padding:10px 12px;border-radius:4px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);cursor:pointer;text-align:center;transition:border-color .12s, background .12s;}
+  .btn:hover{border-color:var(--cyan);}
+  .btn.primary{background:var(--cyan);border-color:var(--cyan);color:#04191c;font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:.45;cursor:default;}
+  .exportmsg{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-dim);min-height:14px;}
+  .exportmsg.ok{color:var(--cyan);}
+  .exportmsg.err{color:var(--magenta);}
+  .codebox{width:100%;height:90px;margin-top:6px;background:var(--surface-3);color:var(--text-dim);border:1px solid var(--line);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:8px;resize:vertical;}
+
+  /* ---------- Preview ---------- */
+  .stage{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 28px;min-height:100vh;position:relative;}
+  .plate{position:relative;max-width:100%;}
+  .plate .corner{position:absolute;width:22px;height:22px;}
+  .plate .corner svg{width:100%;height:100%;}
+  .plate .corner.tl{top:-11px;left:-11px;}
+  .plate .corner.tr{top:-11px;right:-11px;}
+  .plate .corner.bl{bottom:-11px;left:-11px;}
+  .plate .corner.br{bottom:-11px;right:-11px;}
+  .canvasholder{background:var(--paper);box-shadow:0 1px 2px rgba(0,0,0,.4), 0 18px 44px rgba(0,0,0,.35);border-radius:2px;overflow:hidden;line-height:0;}
+  .canvasholder svg{display:block;max-width:78vw;max-height:64vh;width:auto;height:auto;}
+  @media (max-width:880px){ .canvasholder svg{max-width:92vw;} }
+
+  .readout{margin-top:16px;display:flex;gap:18px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-dim);letter-spacing:.02em;}
+  .readout b{color:var(--text);}
+
+  .placeholder-note{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-dim);background:var(--surface-2);border:1px solid var(--line);padding:5px 10px;border-radius:3px;display:none;}
+  .placeholder-note.show{display:block;}
+
+  a{color:var(--cyan);}
+  ::selection{background:var(--cyan-dim);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="regmark">
+        <svg viewBox="0 0 26 26" fill="none">
+          <circle cx="13" cy="13" r="10" stroke="var(--cyan)" stroke-width="1"/>
+          <path d="M13 1v6M13 19v6M1 13h6M19 13h6" stroke="var(--cyan)" stroke-width="1"/>
+          <circle cx="13" cy="13" r="3.2" stroke="var(--magenta)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div>
+        <h1>TRAMA</h1>
+        <p>halftone &middot; gravura &middot; stipple — 100% vetor</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="drop" id="drop">
+        <input type="file" id="file" accept="image/*">
+        <div class="dlabel"><b id="dropTitle">Enviar imagem</b>Arraste um arquivo ou clique — JPG, PNG, WEBP</div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Modo</p>
+        <div class="seg" id="modeSeg">
+          <button data-mode="halftone" class="active">Meio-tom</button>
+          <button data-mode="engraving">Gravura</button>
+          <button data-mode="stipple">Stipple</button>
+          <button data-mode="mosaic">Mosaico</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Trama</p>
+        <div class="field">
+          <div class="field-row"><label for="cols">Densidade</label><span class="val" id="colsVal">55 cel.</span></div>
+          <input type="range" id="cols" min="14" max="450" value="55">
+          <p class="tex-note">Acima de ~250 células o render demora mais (o SVG final continua 100% editável).</p>
+        </div>
+        <div class="field" id="angleField">
+          <div class="field-row"><label for="angle">Ângulo</label><span class="val" id="angleVal">45°</span></div>
+          <input type="range" id="angle" min="0" max="180" value="45">
+        </div>
+        <div class="field" id="dotscaleField">
+          <div class="field-row"><label for="dotscale" id="dotscaleLabel">Tamanho dos pontos</label><span class="val" id="dotscaleVal">100%</span></div>
+          <input type="range" id="dotscale" min="50" max="170" value="100">
+        </div>
+        <div class="field" id="shapeField">
+          <div class="field-row"><label>Forma</label></div>
+          <div class="tex-grid" id="shapeGrid">
+            <button class="tex-thumb active" data-shape="circle" title="Círculo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg></button>
+            <button class="tex-thumb" data-shape="square" title="Quadrado"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="currentColor"/></svg></button>
+            <button class="tex-thumb" data-shape="diamond" title="Losango"><svg viewBox="0 0 24 24"><polygon points="12,2 22,12 12,22 2,12" fill="currentColor"/></svg></button>
+            <button class="tex-thumb" data-shape="triangle" title="Triângulo"><svg viewBox="0 0 24 24"><polygon points="12,2 22,20 2,20" fill="currentColor"/></svg></button>
+            <button class="tex-thumb" data-shape="cross" title="Cruz"><svg viewBox="0 0 24 24"><polygon points="9,2 15,2 15,9 22,9 22,15 15,15 15,22 9,22 9,15 2,15 2,9 9,9" fill="currentColor"/></svg></button>
+          </div>
+        </div>
+        <div class="field subhide" id="exposureField">
+          <div class="field-row"><label for="exposure">Exposição</label><span class="val" id="exposureVal">120%</span></div>
+          <input type="range" id="exposure" min="40" max="220" value="120">
+        </div>
+        <div class="field subhide" id="engravingStyleField">
+          <div class="field-row"><label>Padrão</label></div>
+          <div class="seg seg3" id="engravingStyleSeg">
+            <button data-estyle="straight" class="active">Retas</button>
+            <button data-estyle="circular">Circular</button>
+            <button data-estyle="wave">Ondulada</button>
+          </div>
+        </div>
+        <div class="field subhide" id="waveAmpField">
+          <div class="field-row"><label for="waveAmp">Amplitude da onda</label><span class="val" id="waveAmpVal">60%</span></div>
+          <input type="range" id="waveAmp" min="10" max="100" value="60">
+        </div>
+        <div class="field subhide" id="waveFreqField">
+          <div class="field-row"><label for="waveFreq">Frequência da onda</label><span class="val" id="waveFreqVal">3</span></div>
+          <input type="range" id="waveFreq" min="1" max="10" value="3">
+        </div>
+        <div class="field subhide" id="crosshatchField">
+          <label class="check"><input type="checkbox" id="crosshatch" checked><span>Contra-trama (crosshatch)</span></label>
+          <div class="field-row" style="margin-top:8px;"><label for="chThreshold">Limiar do crosshatch</label><span class="val" id="chThresholdVal">55%</span></div>
+          <input type="range" id="chThreshold" min="20" max="90" value="55">
+        </div>
+        <div class="field subhide" id="mosaicGapField">
+          <div class="field-row"><label for="mosaicGap">Espaçamento</label><span class="val" id="mosaicGapVal">10%</span></div>
+          <input type="range" id="mosaicGap" min="0" max="45" value="10">
+        </div>
+        <div class="field subhide" id="mosaicCornerField">
+          <div class="field-row"><label for="mosaicCorner">Cantos arredondados</label><span class="val" id="mosaicCornerVal">0%</span></div>
+          <input type="range" id="mosaicCorner" min="0" max="50" value="0">
+        </div>
+        <div class="subhide" id="mosaicColorField">
+          <label class="check"><input type="checkbox" id="mosaicOriginalColors"><span>Cores originais da imagem</span></label>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Textura</p>
+        <div class="drop small" id="texDrop">
+          <input type="file" id="texFile" accept=".svg,image/svg+xml" multiple>
+          <div class="dlabel"><b>Enviar SVG(s)</b>Use sua própria forma como unidade da trama</div>
+        </div>
+        <div class="tex-grid" id="texGrid">
+          <button class="tex-thumb active" data-tex="" title="Padrão">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>
+          </button>
+        </div>
+        <label class="check" id="texRotateRow"><input type="checkbox" id="texRotate" checked><span id="texRotateLabel">Girar textura com o ângulo da trama</span></label>
+        <p class="tex-note subhide" id="texEngravingNote">A textura não é usada no modo Gravura.</p>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Tons</p>
+        <div class="row2">
+          <div class="field" style="margin-top:0;">
+            <div class="field-row"><label for="blackpoint">Ponto preto</label><span class="val" id="blackpointVal">0</span></div>
+            <input type="range" id="blackpoint" min="0" max="95" value="0">
+          </div>
+          <div class="field" style="margin-top:0;">
+            <div class="field-row"><label for="whitepoint">Ponto branco</label><span class="val" id="whitepointVal">100</span></div>
+            <input type="range" id="whitepoint" min="5" max="100" value="100">
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="invert"><span>Inverter tons</span></label>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Cor</p>
+        <div class="colorfield">
+          <label>Tinta</label>
+          <div class="swatch-wrap"><code id="inkCode">#111110</code><input type="color" id="inkColor" value="#111110"></div>
+        </div>
+        <div class="colorfield">
+          <label>Papel</label>
+          <div class="swatch-wrap"><code id="paperCode">#F4F1EA</code><input type="color" id="paperColor" value="#f4f1ea"></div>
+        </div>
+        <label class="check"><input type="checkbox" id="transparentBg"><span>Fundo transparente no export</span></label>
+      </div>
+    </div>
+
+    <div class="exportbar">
+      <button class="btn" id="regenBtn" style="display:none;">↻ Reamostrar pontos</button>
+      <button class="btn primary" id="saveBtn">Salvar SVG</button>
+      <button class="btn" id="copyBtn">Copiar código SVG</button>
+      <div class="exportmsg" id="exportMsg"></div>
+      <textarea class="codebox" id="codebox" style="display:none;" readonly></textarea>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="placeholder-note" id="placeholderNote">imagem de exemplo — envie a sua ao lado</div>
+    <div class="plate">
+      <div class="corner tl"><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" stroke="var(--cyan)" stroke-width="1" fill="none"/><path d="M11 1v5M11 17v4M1 11h5M17 11h4" stroke="var(--cyan)" stroke-width="1"/></svg></div>
+      <div class="corner tr"><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" stroke="var(--magenta)" stroke-width="1" fill="none"/><path d="M11 1v5M11 17v4M1 11h5M17 11h4" stroke="var(--magenta)" stroke-width="1"/></svg></div>
+      <div class="corner bl"><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" stroke="var(--magenta)" stroke-width="1" fill="none"/><path d="M11 1v5M11 17v4M1 11h5M17 11h4" stroke="var(--magenta)" stroke-width="1"/></svg></div>
+      <div class="corner br"><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" stroke="var(--cyan)" stroke-width="1" fill="none"/><path d="M11 1v5M11 17v4M1 11h5M17 11h4" stroke="var(--cyan)" stroke-width="1"/></svg></div>
+      <div class="canvasholder" id="canvasholder"></div>
+    </div>
+    <div class="readout">
+      <span>modo <b id="roMode">meio-tom</b></span>
+      <span>elementos <b id="roCount">–</b></span>
+      <span>dimensões <b id="roDims">–</b></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var state = {
+    mode: 'halftone',
+    cols: 55,
+    angle: 45,
+    dotScale: 1.0,
+    exposure: 1.2,
+    engravingStyle: 'straight',
+    waveAmp: 0.6,
+    waveFreq: 3,
+    crosshatch: true,
+    chThreshold: 0.55,
+    blackpoint: 0,
+    whitepoint: 100,
+    invert: false,
+    ink: '#111110',
+    paper: '#f4f1ea',
+    transparentBg: false,
+    activeMotif: null,
+    dotShape: 'circle',
+    texRotate: true,
+    mosaicGap: 10,
+    mosaicCorner: 0,
+    mosaicOriginalColors: false
+  };
+
+  var work = { w: 0, h: 0, darkness: null, ready: false };
+  var lastSvgString = '';
+  var isDemo = true;
+  var motifs = {};
+  var motifSeq = 0;
+
+  // ---------- DOM refs ----------
+  var $ = function(id){ return document.getElementById(id); };
+  var canvasholder = $('canvasholder');
+  var fileInput = $('file');
+  var drop = $('drop');
+
+  // ---------- Image loading ----------
+  function loadImageFile(file){
+    if (!file || !file.type || file.type.indexOf('image') !== 0) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      isDemo = false;
+      $('placeholderNote').classList.remove('show');
+      $('dropTitle').textContent = file.name.length > 26 ? file.name.slice(0,23) + '…' : file.name;
+      processImage(img);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  fileInput.addEventListener('change', function(e){
+    if (e.target.files && e.target.files[0]) loadImageFile(e.target.files[0]);
+  });
+  ['dragenter','dragover'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('drag'); });
+  });
+  drop.addEventListener('drop', function(e){
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) loadImageFile(e.dataTransfer.files[0]);
+  });
+
+  function computeDarkness(data, w, h){
+    var n = w * h;
+    var darkness = new Float32Array(n);
+    var bp = state.blackpoint / 100;
+    var wp = state.whitepoint / 100;
+    var range = Math.max(0.02, wp - bp);
+    for (var i = 0; i < n; i++){
+      var o = i * 4;
+      var lum = (0.2126 * data[o] + 0.7152 * data[o+1] + 0.0722 * data[o+2]) / 255;
+      var adj = (lum - bp) / range;
+      if (adj < 0) adj = 0; else if (adj > 1) adj = 1;
+      if (state.invert) adj = 1 - adj;
+      darkness[i] = 1 - adj;
+    }
+    work.w = w; work.h = h; work.darkness = darkness; work.ready = true;
+  }
+
+  // image is rasterized at up to PROCESS_MAX_W px wide — high enough that a 400+ cell
+  // density grid still samples real detail instead of an upscaled blur.
+  var PROCESS_MAX_W = 2200;
+  var lastRawData = null, lastRawW = 0, lastRawH = 0;
+  function processImage(img){
+    var w = img.naturalWidth || img.width;
+    var h = img.naturalHeight || img.height;
+    var scale = Math.min(1, PROCESS_MAX_W / w);
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+    var off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    var ctx = off.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    lastRawData = ctx.getImageData(0, 0, w, h).data;
+    lastRawW = w; lastRawH = h;
+    computeDarkness(lastRawData, w, h);
+    scheduleRender();
+  }
+  function retone(){
+    if (!lastRawData) return;
+    computeDarkness(lastRawData, lastRawW, lastRawH);
+  }
+
+  function sample(x, y){
+    var w = work.w, h = work.h;
+    if (x < 0) x = 0; else if (x >= w) x = w - 1;
+    if (y < 0) y = 0; else if (y >= h) y = h - 1;
+    return work.darkness[(y|0) * w + (x|0)];
+  }
+
+  function sampleColorHex(x, y){
+    var w = lastRawW, h = lastRawH;
+    if (!lastRawData) return state.ink;
+    if (x < 0) x = 0; else if (x >= w) x = w - 1;
+    if (y < 0) y = 0; else if (y >= h) y = h - 1;
+    var o = ((y|0) * w + (x|0)) * 4;
+    var r = lastRawData[o], g = lastRawData[o+1], b = lastRawData[o+2];
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  function hexToRgb(hex){
+    hex = String(hex).replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(function(c){ return c + c; }).join('');
+    var n = parseInt(hex, 16) || 0;
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function mixHex(hexA, hexB, t){
+    var a = hexToRgb(hexA), b = hexToRgb(hexB);
+    var r = Math.round(a[0] + (b[0] - a[0]) * t);
+    var g = Math.round(a[1] + (b[1] - a[1]) * t);
+    var bl = Math.round(a[2] + (b[2] - a[2]) * t);
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+
+  // ---------- Built-in dot shapes ----------
+  function shapeMarkup(shape, cx, cy, r, rotDeg){
+    var rot = rotDeg ? ' transform="rotate(' + rotDeg.toFixed(1) + ' ' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ')"' : '';
+    if (shape === 'square'){
+      var side = r * 1.65;
+      return '<rect x="' + (cx - side/2).toFixed(1) + '" y="' + (cy - side/2).toFixed(1) + '" width="' + side.toFixed(2) + '" height="' + side.toFixed(2) + '"' + rot + '/>';
+    }
+    if (shape === 'diamond'){
+      var dr = r * 1.25;
+      return '<polygon points="' + cx.toFixed(1) + ',' + (cy - dr).toFixed(1) + ' ' + (cx + dr).toFixed(1) + ',' + cy.toFixed(1) + ' ' + cx.toFixed(1) + ',' + (cy + dr).toFixed(1) + ' ' + (cx - dr).toFixed(1) + ',' + cy.toFixed(1) + '"' + rot + '/>';
+    }
+    if (shape === 'triangle'){
+      var tr = r * 1.3;
+      var a1 = -Math.PI/2, a2 = Math.PI*5/6, a3 = Math.PI/6;
+      var pts = [a1, a3, a2].map(function(a){ return (cx + tr*Math.cos(a)).toFixed(1) + ',' + (cy + tr*Math.sin(a)).toFixed(1); }).join(' ');
+      return '<polygon points="' + pts + '"' + rot + '/>';
+    }
+    if (shape === 'cross'){
+      var cs = r * 1.15, t = r * 0.42;
+      var pts2 = [[-t,-cs],[t,-cs],[t,-t],[cs,-t],[cs,t],[t,t],[t,cs],[-t,cs],[-t,t],[-cs,t],[-cs,-t],[-t,-t]]
+        .map(function(p){ return (cx + p[0]).toFixed(1) + ',' + (cy + p[1]).toFixed(1); }).join(' ');
+      return '<polygon points="' + pts2 + '"' + rot + '/>';
+    }
+    return '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + r.toFixed(2) + '"/>';
+  }
+
+  // ---------- Texture motifs (custom SVG shapes) ----------
+  function importMotif(svgText, seq){
+    var doc;
+    try { doc = new DOMParser().parseFromString(svgText, 'image/svg+xml'); } catch (e){ return null; }
+    var root = doc.documentElement;
+    if (!root || root.nodeName.toLowerCase() !== 'svg' || doc.getElementsByTagName('parsererror').length) return null;
+
+    Array.prototype.forEach.call(root.querySelectorAll('script'), function(n){ n.parentNode.removeChild(n); });
+    Array.prototype.forEach.call(root.querySelectorAll('*'), function(el){
+      Array.prototype.slice.call(el.attributes).forEach(function(a){
+        if (/^on/i.test(a.name)) el.removeAttribute(a.name);
+      });
+    });
+
+    var vb = root.getAttribute('viewBox');
+    if (!vb){
+      var vw = parseFloat(root.getAttribute('width')) || 100;
+      var vh = parseFloat(root.getAttribute('height')) || 100;
+      vb = '0 0 ' + vw + ' ' + vh;
+    }
+
+    var prefix = 'tx' + seq + '_';
+    var idMap = {};
+    Array.prototype.forEach.call(root.querySelectorAll('[id]'), function(el){
+      var old = el.getAttribute('id');
+      var neu = prefix + old;
+      idMap[old] = neu;
+      el.setAttribute('id', neu);
+    });
+    var urlRefAttrs = ['fill', 'stroke', 'filter', 'clip-path', 'mask', 'marker-start', 'marker-mid', 'marker-end'];
+    Array.prototype.forEach.call(root.querySelectorAll('*'), function(el){
+      urlRefAttrs.forEach(function(attr){
+        var v = el.getAttribute(attr);
+        if (v && /url\(#/.test(v)){
+          v = v.replace(/url\(#([^)]+)\)/g, function(m, id){ return idMap[id] ? 'url(#' + idMap[id] + ')' : m; });
+          el.setAttribute(attr, v);
+        }
+      });
+      ['href', 'xlink:href'].forEach(function(attr){
+        var v = el.getAttribute(attr);
+        if (v && v.charAt(0) === '#' && idMap[v.slice(1)]) el.setAttribute(attr, '#' + idMap[v.slice(1)]);
+      });
+    });
+
+    var serializer = new XMLSerializer();
+    var rawInner = Array.prototype.map.call(root.childNodes, function(n){ return serializer.serializeToString(n); }).join('');
+
+    var mono = root.cloneNode(true);
+    Array.prototype.forEach.call(mono.querySelectorAll('*'), function(el){
+      ['fill', 'stroke'].forEach(function(attr){
+        var v = el.getAttribute(attr);
+        if (v && v.trim().toLowerCase() !== 'none') el.setAttribute(attr, 'currentColor');
+      });
+      var style = el.getAttribute('style');
+      if (style){
+        style = style.replace(/(fill|stroke)\s*:\s*[^;]+/gi, function(m, prop){
+          return /:\s*none/i.test(m) ? m : prop + ':currentColor';
+        });
+        el.setAttribute('style', style);
+      }
+    });
+    var monoInner = Array.prototype.map.call(mono.childNodes, function(n){ return serializer.serializeToString(n); }).join('');
+
+    return {
+      id: 'tx' + seq,
+      viewBox: vb,
+      monoInner: monoInner,
+      thumbSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + rawInner + '</svg>'
+    };
+  }
+
+  function addMotifThumb(motif){
+    var btn = document.createElement('button');
+    btn.className = 'tex-thumb';
+    btn.setAttribute('data-tex', motif.id);
+    btn.title = 'Textura enviada';
+    btn.innerHTML = motif.thumbSvg + '<span class="rm" data-rm="' + motif.id + '">&times;</span>';
+    $('texGrid').appendChild(btn);
+  }
+
+  function handleMotifFiles(fileList){
+    Array.prototype.forEach.call(fileList, function(f){
+      if (!/\.svg$/i.test(f.name) && f.type !== 'image/svg+xml') return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        motifSeq++;
+        var m = importMotif(String(reader.result), motifSeq);
+        if (!m){ setMsg('SVG inválido: ' + f.name, 'err'); return; }
+        motifs[m.id] = m;
+        addMotifThumb(m);
+      };
+      reader.readAsText(f);
+    });
+  }
+
+  // ---------- Renderers ----------
+  function renderHalftone(cellSize){
+    var w = work.w, h = work.h;
+    var theta = state.angle * Math.PI / 180;
+    var cos = Math.cos(theta), sin = Math.sin(theta);
+    var cx = w / 2, cy = h / 2;
+    var diag = Math.sqrt(w*w + h*h);
+    var steps = Math.ceil((diag / 2) / cellSize) + 1;
+    var maxR = (cellSize / 2) * 1.28 * state.dotScale;
+    var motif = state.activeMotif ? motifs[state.activeMotif] : null;
+    var parts = [];
+    for (var i = -steps; i <= steps; i++){
+      for (var j = -steps; j <= steps; j++){
+        var gx = cx + i * cellSize * cos - j * cellSize * sin;
+        var gy = cy + i * cellSize * sin + j * cellSize * cos;
+        if (gx < -cellSize || gx > w + cellSize || gy < -cellSize || gy > h + cellSize) continue;
+        var d = sample(gx, gy);
+        var r = (cellSize / 2) * state.dotScale * d;
+        if (r > maxR) r = maxR;
+        if (r < 0.18) continue;
+        if (motif){
+          var d2 = r * 2;
+          var rot = state.texRotate ? ' transform="rotate(' + state.angle.toFixed(1) + ' ' + gx.toFixed(1) + ' ' + gy.toFixed(1) + ')"' : '';
+          parts.push('<use href="#motif" x="' + (gx - r).toFixed(1) + '" y="' + (gy - r).toFixed(1) + '" width="' + d2.toFixed(2) + '" height="' + d2.toFixed(2) + '"' + rot + '/>');
+        } else {
+          var rotDeg = (state.dotShape !== 'circle' && state.texRotate) ? state.angle : 0;
+          parts.push(shapeMarkup(state.dotShape, gx, gy, r, rotDeg));
+        }
+      }
+    }
+    return parts;
+  }
+
+  function renderEngraving(cellSize){
+    if (state.engravingStyle === 'circular') return renderEngravingCircular(cellSize);
+    if (state.engravingStyle === 'wave') return renderEngravingWave(cellSize);
+    return renderEngravingStraight(cellSize);
+  }
+
+  function renderEngravingStraight(cellSize){
+    var w = work.w, h = work.h;
+    var theta = state.angle * Math.PI / 180;
+    var dir = [Math.cos(theta), Math.sin(theta)];
+    var nrm = [-Math.sin(theta), Math.cos(theta)];
+    var cx = w / 2, cy = h / 2;
+    var diag = Math.sqrt(w*w + h*h);
+    var half = diag / 2;
+    var rowSteps = Math.ceil(half / cellSize) + 1;
+    var step = Math.max(1.2, cellSize / 2.2);
+    var colSteps = Math.ceil(half / step) + 1;
+    var maxHw = (cellSize / 2) * 1.1 * state.dotScale;
+
+    var parts = [];
+
+    function buildPass(dirV, nrmV, threshold, invertLayer){
+      for (var j = -rowSteps; j <= rowSteps; j++){
+        var baseX = cx + j * cellSize * nrmV[0];
+        var baseY = cy + j * cellSize * nrmV[1];
+        var prevHw = null, prevX = 0, prevY = 0;
+        for (var i = -colSteps; i <= colSteps; i++){
+          var px = baseX + i * step * dirV[0];
+          var py = baseY + i * step * dirV[1];
+          if (px < -cellSize || px > w + cellSize || py < -cellSize || py > h + cellSize){
+            prevHw = null; continue;
+          }
+          var d = sample(px, py);
+          var val = d;
+          if (threshold !== null){
+            val = (d - threshold) / Math.max(0.05, 1 - threshold);
+            if (val < 0) val = 0; if (val > 1) val = 1;
+          }
+          var hw = (cellSize / 2) * state.dotScale * val;
+          if (hw > maxHw) hw = maxHw;
+          if (prevHw !== null && (prevHw > 0.14 || hw > 0.14)){
+            var ox1 = nrmV[0] * prevHw, oy1 = nrmV[1] * prevHw;
+            var ox2 = nrmV[0] * hw, oy2 = nrmV[1] * hw;
+            parts.push(
+              '<polygon points="' +
+              (prevX+ox1).toFixed(1) + ',' + (prevY+oy1).toFixed(1) + ' ' +
+              (px+ox2).toFixed(1) + ',' + (py+oy2).toFixed(1) + ' ' +
+              (px-ox2).toFixed(1) + ',' + (py-oy2).toFixed(1) + ' ' +
+              (prevX-ox1).toFixed(1) + ',' + (prevY-oy1).toFixed(1) +
+              '"/>'
+            );
+          }
+          prevHw = hw; prevX = px; prevY = py;
+        }
+      }
+    }
+
+    buildPass(dir, nrm, null, false);
+    if (state.crosshatch){
+      buildPass([-dir[1], dir[0]], [-nrm[1], nrm[0]], state.chThreshold, true);
+    }
+    return parts;
+  }
+
+  function renderEngravingWave(cellSize){
+    var w = work.w, h = work.h;
+    var theta = state.angle * Math.PI / 180;
+    var dir = [Math.cos(theta), Math.sin(theta)];
+    var nrm = [-Math.sin(theta), Math.cos(theta)];
+    var cx = w / 2, cy = h / 2;
+    var diag = Math.sqrt(w*w + h*h);
+    var half = diag / 2;
+    var rowSteps = Math.ceil(half / cellSize) + 1;
+    var step = Math.max(1.2, cellSize / 2.2);
+    var colSteps = Math.ceil(half / step) + 1;
+    var maxHw = (cellSize / 2) * 1.1 * state.dotScale;
+    var amplitude = cellSize * 0.55 * state.waveAmp;
+    var waveLen = cellSize * (14 / state.waveFreq);
+    var parts = [];
+
+    for (var j = -rowSteps; j <= rowSteps; j++){
+      var baseX = cx + j * cellSize * nrm[0];
+      var baseY = cy + j * cellSize * nrm[1];
+      var prevHw = null, prevX = 0, prevY = 0;
+      for (var i = -colSteps; i <= colSteps; i++){
+        var s = i * step;
+        var wave = amplitude * Math.sin((2 * Math.PI * s) / waveLen);
+        var px = baseX + s * dir[0] + wave * nrm[0];
+        var py = baseY + s * dir[1] + wave * nrm[1];
+        if (px < -cellSize || px > w + cellSize || py < -cellSize || py > h + cellSize){
+          prevHw = null; continue;
+        }
+        var d = sample(px, py);
+        var hw = (cellSize / 2) * state.dotScale * d;
+        if (hw > maxHw) hw = maxHw;
+        if (prevHw !== null && (prevHw > 0.14 || hw > 0.14)){
+          var ox1 = nrm[0] * prevHw, oy1 = nrm[1] * prevHw;
+          var ox2 = nrm[0] * hw, oy2 = nrm[1] * hw;
+          parts.push(
+            '<polygon points="' +
+            (prevX+ox1).toFixed(1) + ',' + (prevY+oy1).toFixed(1) + ' ' +
+            (px+ox2).toFixed(1) + ',' + (py+oy2).toFixed(1) + ' ' +
+            (px-ox2).toFixed(1) + ',' + (py-oy2).toFixed(1) + ' ' +
+            (prevX-ox1).toFixed(1) + ',' + (prevY-oy1).toFixed(1) +
+            '"/>'
+          );
+        }
+        prevHw = hw; prevX = px; prevY = py;
+      }
+    }
+    return parts;
+  }
+
+  function renderEngravingCircular(cellSize){
+    var w = work.w, h = work.h;
+    var cx = w / 2, cy = h / 2;
+    var diag = Math.sqrt(w*w + h*h);
+    var maxR = diag / 2 + cellSize;
+    var ringCount = Math.ceil(maxR / cellSize);
+    var step = Math.max(1.2, cellSize / 2.2);
+    var maxHw = (cellSize / 2) * 1.1 * state.dotScale;
+    var parts = [];
+
+    for (var ring = 1; ring <= ringCount; ring++){
+      var R = ring * cellSize;
+      var n = Math.max(8, Math.ceil((2 * Math.PI * R) / step));
+      var prevHw = null, prevX = 0, prevY = 0, prevNx = 0, prevNy = 0;
+      for (var i = 0; i <= n; i++){
+        var theta = (i / n) * 2 * Math.PI;
+        var nx = Math.cos(theta), ny = Math.sin(theta);
+        var px = cx + R * nx, py = cy + R * ny;
+        if (px < -cellSize || px > w + cellSize || py < -cellSize || py > h + cellSize){
+          prevHw = null; continue;
+        }
+        var d = sample(px, py);
+        var hw = (cellSize / 2) * state.dotScale * d;
+        if (hw > maxHw) hw = maxHw;
+        if (prevHw !== null && (prevHw > 0.14 || hw > 0.14)){
+          var ox1 = prevNx * prevHw, oy1 = prevNy * prevHw;
+          var ox2 = nx * hw, oy2 = ny * hw;
+          parts.push(
+            '<polygon points="' +
+            (prevX+ox1).toFixed(1) + ',' + (prevY+oy1).toFixed(1) + ' ' +
+            (px+ox2).toFixed(1) + ',' + (py+oy2).toFixed(1) + ' ' +
+            (px-ox2).toFixed(1) + ',' + (py-oy2).toFixed(1) + ' ' +
+            (prevX-ox1).toFixed(1) + ',' + (prevY-oy1).toFixed(1) +
+            '"/>'
+          );
+        }
+        prevHw = hw; prevX = px; prevY = py; prevNx = nx; prevNy = ny;
+      }
+    }
+    return parts;
+  }
+
+  function renderStipple(cellSize){
+    var w = work.w, h = work.h;
+    var cols = Math.ceil(w / cellSize);
+    var rows = Math.ceil(h / cellSize);
+    var parts = [];
+    var maxR = cellSize * 0.62 * state.dotScale;
+    var motif = state.activeMotif ? motifs[state.activeMotif] : null;
+    for (var j = 0; j < rows; j++){
+      for (var i = 0; i < cols; i++){
+        var ccx = i * cellSize + cellSize / 2;
+        var ccy = j * cellSize + cellSize / 2;
+        var d = sample(ccx, ccy);
+        var prob = d * state.exposure;
+        if (Math.random() > prob) continue;
+        var px = i * cellSize + Math.random() * cellSize;
+        var py = j * cellSize + Math.random() * cellSize;
+        var r = cellSize * 0.5 * state.dotScale * (0.45 + 0.55 * Math.random());
+        if (r > maxR) r = maxR;
+        if (r < 0.15) continue;
+        if (motif){
+          var d2 = r * 2;
+          var rot = state.texRotate ? ' transform="rotate(' + (Math.random() * 360).toFixed(1) + ' ' + px.toFixed(1) + ' ' + py.toFixed(1) + ')"' : '';
+          parts.push('<use href="#motif" x="' + (px - r).toFixed(1) + '" y="' + (py - r).toFixed(1) + '" width="' + d2.toFixed(2) + '" height="' + d2.toFixed(2) + '"' + rot + '/>');
+        } else {
+          var rotDeg = (state.dotShape !== 'circle' && state.texRotate) ? (Math.random() * 360) : 0;
+          parts.push(shapeMarkup(state.dotShape, px, py, r, rotDeg));
+        }
+      }
+    }
+    return parts;
+  }
+
+  function renderMosaic(cellSize){
+    var w = work.w, h = work.h;
+    var theta = state.angle * Math.PI / 180;
+    var cos = Math.cos(theta), sin = Math.sin(theta);
+    var cx = w / 2, cy = h / 2;
+    var diag = Math.sqrt(w*w + h*h);
+    var steps = Math.ceil((diag / 2) / cellSize) + 1;
+    var gapFrac = state.mosaicGap / 100;
+    var tile = cellSize * (1 - gapFrac);
+    var rx = tile * 0.5 * (state.mosaicCorner / 100);
+    var motif = state.activeMotif ? motifs[state.activeMotif] : null;
+    var parts = [];
+    for (var i = -steps; i <= steps; i++){
+      for (var j = -steps; j <= steps; j++){
+        var gx = cx + i * cellSize * cos - j * cellSize * sin;
+        var gy = cy + i * cellSize * sin + j * cellSize * cos;
+        if (gx < -cellSize || gx > w + cellSize || gy < -cellSize || gy > h + cellSize) continue;
+        var d = sample(gx, gy);
+        var fillColor = state.mosaicOriginalColors ? sampleColorHex(gx, gy) : mixHex(state.paper, state.ink, d);
+        if (motif){
+          var rotAttr = state.texRotate ? ' transform="rotate(' + state.angle.toFixed(1) + ' ' + gx.toFixed(1) + ' ' + gy.toFixed(1) + ')"' : '';
+          parts.push('<use href="#motif" x="' + (gx - tile/2).toFixed(1) + '" y="' + (gy - tile/2).toFixed(1) + '" width="' + tile.toFixed(2) + '" height="' + tile.toFixed(2) + '" style="color:' + fillColor + '"' + rotAttr + '/>');
+        } else {
+          parts.push('<rect x="' + (gx - tile/2).toFixed(1) + '" y="' + (gy - tile/2).toFixed(1) + '" width="' + tile.toFixed(2) + '" height="' + tile.toFixed(2) + '" rx="' + rx.toFixed(2) + '" fill="' + fillColor + '" transform="rotate(' + state.angle.toFixed(1) + ' ' + gx.toFixed(1) + ' ' + gy.toFixed(1) + ')"/>');
+        }
+      }
+    }
+    return parts;
+  }
+
+  // ---------- Main render ----------
+  var rafId = null;
+  function scheduleRender(){
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(render);
+  }
+
+  function render(){
+    rafId = null;
+    if (!work.ready) return;
+    var w = work.w, h = work.h;
+    var cellSize = w / state.cols;
+
+    var parts;
+    if (state.mode === 'halftone') parts = renderHalftone(cellSize);
+    else if (state.mode === 'engraving') parts = renderEngraving(cellSize);
+    else if (state.mode === 'mosaic') parts = renderMosaic(cellSize);
+    else parts = renderStipple(cellSize);
+
+    var motif = (state.activeMotif && state.mode !== 'engraving') ? motifs[state.activeMotif] : null;
+    var defs = motif ? ('<defs><symbol id="motif" viewBox="' + motif.viewBox + '">' + motif.monoInner + '</symbol></defs>') : '';
+
+    var bg = state.transparentBg ? '' : '<rect x="0" y="0" width="' + w + '" height="' + h + '" fill="' + state.paper + '"/>';
+    var previewBg = '<rect x="0" y="0" width="' + w + '" height="' + h + '" fill="' + state.paper + '"/>';
+
+    var shapes = '<g fill="' + state.ink + '" stroke="none" style="color:' + state.ink + '">' + parts.join('') + '</g>';
+
+    var svgOpen = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">';
+
+    // preview (always shows a background so it's visible regardless of transparent export choice)
+    canvasholder.innerHTML = svgOpen + previewBg + defs + shapes + '</svg>';
+
+    lastSvgString = svgOpen + bg + defs + shapes + '</svg>';
+
+    $('roCount').textContent = parts.length.toLocaleString('pt-BR');
+    $('roDims').textContent = w + ' × ' + h;
+    var modeLabel = state.mode === 'halftone' ? 'meio-tom' : (state.mode === 'engraving' ? 'gravura' : (state.mode === 'mosaic' ? 'mosaico' : 'stipple'));
+    if (state.mode === 'engraving'){
+      var estyleLabel = state.engravingStyle === 'circular' ? 'circular' : (state.engravingStyle === 'wave' ? 'ondulada' : 'retas');
+      modeLabel += ' · ' + estyleLabel;
+    }
+    $('roMode').textContent = modeLabel;
+
+    if ($('codebox').style.display !== 'none') $('codebox').value = lastSvgString;
+  }
+
+  // ---------- Controls wiring ----------
+  function bindRange(id, key, fmt, transform){
+    var el = $(id), valEl = $(id + 'Val');
+    el.addEventListener('input', function(){
+      var raw = parseFloat(el.value);
+      state[key] = transform ? transform(raw) : raw;
+      valEl.textContent = fmt(raw);
+      if (key === 'blackpoint' || key === 'whitepoint' || key === 'invert') retone();
+      scheduleRender();
+    });
+  }
+
+  bindRange('cols', 'cols', function(v){ return v + ' cel.'; });
+  bindRange('angle', 'angle', function(v){ return v + '°'; });
+  bindRange('dotscale', 'dotScale', function(v){ return v + '%'; }, function(v){ return v/100; });
+  bindRange('exposure', 'exposure', function(v){ return v + '%'; }, function(v){ return v/100; });
+  bindRange('chThreshold', 'chThreshold', function(v){ return v + '%'; }, function(v){ return v/100; });
+  bindRange('blackpoint', 'blackpoint', function(v){ return String(v); });
+  bindRange('whitepoint', 'whitepoint', function(v){ return String(v); });
+  bindRange('mosaicGap', 'mosaicGap', function(v){ return v + '%'; });
+  bindRange('mosaicCorner', 'mosaicCorner', function(v){ return v + '%'; });
+  bindRange('waveAmp', 'waveAmp', function(v){ return v + '%'; }, function(v){ return v/100; });
+  bindRange('waveFreq', 'waveFreq', function(v){ return String(v); });
+
+  $('invert').addEventListener('change', function(){
+    state.invert = $('invert').checked;
+    retone();
+    scheduleRender();
+  });
+  $('crosshatch').addEventListener('change', function(){
+    state.crosshatch = $('crosshatch').checked;
+    scheduleRender();
+  });
+  $('transparentBg').addEventListener('change', function(){
+    state.transparentBg = $('transparentBg').checked;
+    scheduleRender();
+  });
+  $('mosaicOriginalColors').addEventListener('change', function(){
+    state.mosaicOriginalColors = $('mosaicOriginalColors').checked;
+    scheduleRender();
+  });
+  $('texRotate').addEventListener('change', function(){
+    state.texRotate = $('texRotate').checked;
+    scheduleRender();
+  });
+
+  // ---------- Texture library UI ----------
+  var texFile = $('texFile');
+  var texDrop = $('texDrop');
+  texFile.addEventListener('change', function(e){
+    handleMotifFiles(e.target.files);
+    texFile.value = '';
+  });
+  ['dragenter', 'dragover'].forEach(function(ev){
+    texDrop.addEventListener(ev, function(e){ e.preventDefault(); texDrop.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function(ev){
+    texDrop.addEventListener(ev, function(e){ e.preventDefault(); texDrop.classList.remove('drag'); });
+  });
+  texDrop.addEventListener('drop', function(e){
+    if (e.dataTransfer.files) handleMotifFiles(e.dataTransfer.files);
+  });
+
+  function setActiveThumb(id){
+    document.querySelectorAll('#texGrid .tex-thumb').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-tex') === id);
+    });
+  }
+
+  function syncShapeFieldState(){
+    $('shapeField').classList.toggle('dimmed', !!state.activeMotif);
+  }
+
+  $('texGrid').addEventListener('click', function(e){
+    var rm = e.target.closest('[data-rm]');
+    if (rm){
+      e.stopPropagation();
+      var rmId = rm.getAttribute('data-rm');
+      delete motifs[rmId];
+      if (state.activeMotif === rmId){ state.activeMotif = null; setActiveThumb(''); syncShapeFieldState(); scheduleRender(); }
+      var thumb = rm.closest('.tex-thumb');
+      thumb.parentNode.removeChild(thumb);
+      return;
+    }
+    var btn = e.target.closest('.tex-thumb');
+    if (!btn) return;
+    var id = btn.getAttribute('data-tex');
+    state.activeMotif = id || null;
+    setActiveThumb(id);
+    syncShapeFieldState();
+    scheduleRender();
+  });
+
+  $('shapeGrid').addEventListener('click', function(e){
+    var btn = e.target.closest('.tex-thumb');
+    if (!btn) return;
+    state.dotShape = btn.getAttribute('data-shape');
+    document.querySelectorAll('#shapeGrid .tex-thumb').forEach(function(b){
+      b.classList.toggle('active', b === btn);
+    });
+    scheduleRender();
+  });
+
+  $('inkColor').addEventListener('input', function(){
+    state.ink = $('inkColor').value;
+    $('inkCode').textContent = state.ink.toUpperCase();
+    scheduleRender();
+  });
+  $('paperColor').addEventListener('input', function(){
+    state.paper = $('paperColor').value;
+    $('paperCode').textContent = state.paper.toUpperCase();
+    scheduleRender();
+  });
+
+  $('regenBtn').addEventListener('click', scheduleRender);
+
+  function updateFieldVisibility(){
+    var isEngraving = state.mode === 'engraving';
+    var isCircular = isEngraving && state.engravingStyle === 'circular';
+    var isWave = isEngraving && state.engravingStyle === 'wave';
+    var isStraight = isEngraving && state.engravingStyle === 'straight';
+
+    $('angleField').classList.toggle('hidden', state.mode === 'stipple' || isCircular);
+    $('dotscaleField').classList.toggle('hidden', state.mode === 'mosaic');
+    $('shapeField').classList.toggle('hidden', isEngraving || state.mode === 'mosaic');
+    $('exposureField').classList.toggle('show', state.mode === 'stipple');
+    $('engravingStyleField').classList.toggle('show', isEngraving);
+    $('waveAmpField').classList.toggle('show', isWave);
+    $('waveFreqField').classList.toggle('show', isWave);
+    $('crosshatchField').classList.toggle('show', isStraight);
+    $('mosaicGapField').classList.toggle('show', state.mode === 'mosaic');
+    $('mosaicCornerField').classList.toggle('show', state.mode === 'mosaic');
+    $('mosaicColorField').classList.toggle('show', state.mode === 'mosaic');
+    $('regenBtn').style.display = state.mode === 'stipple' ? 'block' : 'none';
+    $('dotscaleLabel').textContent = isEngraving ? 'Espessura das linhas' : 'Tamanho dos pontos';
+    $('texEngravingNote').classList.toggle('show', isEngraving);
+    $('texRotateLabel').textContent = state.mode === 'stipple' ? 'Rotação aleatória dos elementos' : 'Girar elementos com o ângulo da trama';
+  }
+
+  $('modeSeg').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    state.mode = btn.getAttribute('data-mode');
+    document.querySelectorAll('#modeSeg button').forEach(function(b){ b.classList.toggle('active', b === btn); });
+    updateFieldVisibility();
+    scheduleRender();
+  });
+
+  $('engravingStyleSeg').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-estyle]');
+    if (!btn) return;
+    state.engravingStyle = btn.getAttribute('data-estyle');
+    document.querySelectorAll('#engravingStyleSeg button').forEach(function(b){ b.classList.toggle('active', b === btn); });
+    updateFieldVisibility();
+    scheduleRender();
+  });
+
+  // ---------- Export ----------
+  function setMsg(text, cls){
+    var el = $('exportMsg');
+    el.textContent = text;
+    el.className = 'exportmsg' + (cls ? ' ' + cls : '');
+  }
+
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  $('copyBtn').addEventListener('click', function(){
+    if (!lastSvgString) return;
+    var box = $('codebox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    box.value = lastSvgString;
+    var done = false;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(lastSvgString).then(function(){
+        setMsg('Código SVG copiado.', 'ok');
+      }).catch(function(){
+        if (fallbackCopy(lastSvgString)) setMsg('Copiado (modo alternativo).', 'ok');
+        else setMsg('Não copiou — selecione o texto abaixo manualmente.', 'err');
+      });
+      done = true;
+    }
+    if (!done){
+      if (fallbackCopy(lastSvgString)) setMsg('Copiado.', 'ok');
+      else setMsg('Selecione o texto abaixo e copie manualmente.', 'err');
+    }
+  });
+
+  $('saveBtn').addEventListener('click', function(){
+    if (!lastSvgString) return;
+    var blob = new Blob([lastSvgString], { type: 'image/svg+xml' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'trama-' + state.mode + '.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setMsg('SVG salvo.', 'ok');
+  });
+
+  // ---------- Demo image on first load ----------
+  function buildDemoImage(){
+    var w = 640, h = 800;
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    // soft backdrop gradient
+    var bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, '#e9e9e9');
+    bgGrad.addColorStop(1, '#ffffff');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // bust silhouette via radial-shaded shapes (procedural, no external asset)
+    ctx.save();
+    ctx.translate(w/2, h*0.56);
+
+    var shoulders = ctx.createRadialGradient(-40, 60, 30, 0, 120, 420);
+    shoulders.addColorStop(0, '#3a3a3a');
+    shoulders.addColorStop(1, '#050505');
+    ctx.fillStyle = shoulders;
+    ctx.beginPath();
+    ctx.ellipse(0, 230, 230, 220, 0, Math.PI, 2*Math.PI);
+    ctx.fill();
+
+    var neck = ctx.createLinearGradient(-30, 60, 30, 140);
+    neck.addColorStop(0, '#2a2a2a');
+    neck.addColorStop(1, '#050505');
+    ctx.fillStyle = neck;
+    ctx.fillRect(-45, 40, 90, 110);
+
+    var head = ctx.createRadialGradient(-45, -60, 20, 0, -20, 190);
+    head.addColorStop(0, '#565656');
+    head.addColorStop(0.55, '#1a1a1a');
+    head.addColorStop(1, '#020202');
+    ctx.fillStyle = head;
+    ctx.beginPath();
+    ctx.ellipse(0, -60, 150, 175, 0, 0, 2*Math.PI);
+    ctx.fill();
+
+    // rim light
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.ellipse(-25, -70, 150, 175, 0, Math.PI*1.15, Math.PI*1.55);
+    ctx.stroke();
+
+    ctx.restore();
+
+    // vignette
+    var vg = ctx.createRadialGradient(w/2, h*0.45, h*0.25, w/2, h*0.45, h*0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.18)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0,0,w,h);
+
+    var img = new Image();
+    img.onload = function(){
+      processImage(img);
+      $('placeholderNote').classList.add('show');
+    };
+    img.src = c.toDataURL('image/png');
+  }
+
+  buildDemoImage();
+})();
+</script>
+</body>
+</html>
